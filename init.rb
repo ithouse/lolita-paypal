@@ -1,0 +1,1 @@
+require 'lolita_paypal'

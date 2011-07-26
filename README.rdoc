@@ -1,0 +1,183 @@
+== INSTALL
+
+1. For example create model "MySubscription"
+2. Add include line, method paid? should be already defined before include:
+   
+    def paid?
+        false
+    end
+
+    include Lolita::Billing:Paypal
+
+3. Add these special methods to your "MySubscription" and modify them to suit your needs:
+
+    # Methods for #Lolita::Billing:Paypal
+    #---------------------------------------
+
+    # returns integer in cents
+    def price
+      self.total_price
+    end
+
+    # string up to 125 symbols
+    # this will included in payment description
+    def description
+      "Payment to INC Lolipop"
+    end
+
+    # returns 3 digit string according to http://en.wikipedia.org/wiki/ISO_4217
+    def currency
+      "840"
+    end
+    
+  # triggered when Paypal transaction is saved
+  def paypal_trx_saved trx
+    #return true if status == trx.status
+    case trx.status
+    when 'Canceled-Reversal' then update_attribute(:status, 'failed')
+    when 'Completed' then complete
+    when 'Denied' then update_attribute(:status, 'failed')
+    when 'Expired' then update_attribute(:status, 'failed')
+    when 'Failed' then update_attribute(:status, 'failed')
+    when 'In-Progress' then update_attribute(:status, 'payment')
+    when 'Partially-Refunded' then update_attribute(:status, 'failed')
+    when 'Pending' then update_attribute(:status, 'payment')
+    when 'Processed' then update_attribute(:status, 'payment')
+    when 'Refunded' then update_attribute(:status, 'failed')
+    when 'Reversed' then update_attribute(:status, 'reversed')
+    when 'Voided' then update_attribute(:status, 'failed')
+    else update_attribute(:status, 'failed')
+    end
+  end
+    
+    # optional
+    # this is called when FirstData merchant is taking some actions
+    # there you can save the log message other than the default log file
+    def log severity, message
+      #self.logs.create(:severity => severity, :message => message)
+    end
+    #---------------------------------------
+
+4. When you are ready to pay your payment controller action should end like this:
+
+    @my_subscription = MySubscription....
+    ....
+    ....
+        
+    session[:payment_data] ||= {}
+    session[:payment_data][:billing_class] = @my_subscription.class.to_s
+    session[:payment_data][:billing_id]    = @my_subscription.id
+    session[:payment_data][:finish_path]   = done_my_subscription_path
+    redirect_to checkout_paypal_path
+
+5. Configure your environments
+
+Paypal
+
+Development
+Create an account into https://developer.paypal.com/. Log in.
+Create a seller account and a buyer account Test Accounts -> Create a preconfigured account. Remeber both passwords for seller and for buyer accounts.
+
+Certificates
+Make your private key
+
+openssl genrsa -out my-prvkey.pem 1024
+
+Make your public certificate
+
+openssl req -new -key my-prvkey.pem -x509 -days 365 -out my-pubcert.pem
+
+When openssl promt for your web-store country code, postal address, email, then put into public certificate correct values.
+Sample test seller account:
+aivils_XXXXXXXXXX_biz@gmail.com
+
+
+Country: United States
+ Business Name: Aivils Štoss’s Test Store
+ Credit Card: Visa XXXXXXXXXXXXXXXX
+ Exp Date: 7/2016
+ Bank Account: Checking (Confirmed)
+ Routing Number: 325272063
+ Bank Account Number: XXXXXXXXXXXXXXXX
+ Balance: 1188.83 USD
+ Email: Confirmed
+ Notes:
+ Date Created: Jul. 12, 2011 04:27:32 PDT
+
+Command line extract values from your  my-pubcert.pem
+
+openssl x509 -text -in my-pubcert.pem
+
+shows this:
+Issuer: C=US, ST=Default Province, L=Default City, O=Aivils Štoss’s Test Store, OU=Aivils Štoss’s Test Store, CN=localhost/emailAddress=aivils_XXXXXXXXXX_biz@gmail.com
+
+Certificates download/upload
+
+Go to https://www.sandbox.paypal.com/
+Log in as seller aivils_XXXXXXXXXX_biz@gmail.com
+Go to My Account -> Profile -> Encrypted Payment Settings
+
+Get paypal public certificate
+
+In the paragraph "Pay Pal Public Certificate"
+Push the button "Download". You will get paypal_cert_pem.txt. Make sure this paypal_cert_pem.txt contains sandbox_web_api in the first line of text.
+Copy this file in destination:
+
+cp paypal_cert_pem.txt $RAILS_ROOT/config/paypal/test/paypal_cert.pem
+, where 
+$RAILS_ROOT - root of your rails based project
+/config/paypal/test/paypal_cert.pem - typical destination for this certificate file
+
+Upload your public certificate
+
+In the paragraph "Your Public Certificates" push button "Add". Upload your my-pubcert.pem file there. After successful upload you will see "Cert ID"
+
+Configure lolita_paypal
+
+Put these lines into your $RAILS_ROOT/config/environments/development.rb
+
+config.after_initialize do
+  ActiveMerchant::Billing::Base.mode = :debug
+  ActiveMerchant::Billing::Base.gateway_mode = :test
+  ActiveMerchant::Billing::Base.integration_mode = :test
+  ActiveMerchant::Billing::PaypalGateway.pem_file =File.read(RAILS_ROOT + "/config/paypal/test/paypal_cert.pem")
+  if defined?(Lolita::Paypal)
+    Lolita::Paypal.paypal_cert_pem = RAILS_ROOT + "/config/paypal/test/paypal_cert.pem"
+    Lolita::Paypal.app_cert_pem = RAILS_ROOT + "/config/paypal/test/my-pubcert.pem"
+    Lolita::Paypal.app_key_pem = RAILS_ROOT + "/config/paypal/test/my-prvkey.pem"
+    Lolita::Paypal.cert_id = "XXXXXXXXXXXXX"
+    Lolita::Paypal.account = "aivils_XXXXXXXXXX_biz@gmail.com"
+  end
+end
+, where
+Lolita::Paypal.paypal_cert_pem, Lolita::Paypal.app_cert_pem, Lolita::Paypal.app_key_pem are locations of certificates and keys
+Lolita::Paypal.cert_id is "Cert ID" from sandbox.paypal.com web page
+Lolita::Paypal.account is seller account in sandbox.paypal.com
+
+Instant Payment Notification (IPN)
+
+Make sure your development computer have public accessible IP address or router/firewall will forward incoming trafic to your development server.
+
+
+Production, Staging
+
+To bee sure payments are rock stable we used real paypal account for staging too.
+Just make two public certificates one for stagin another for production. Upload both public certificates on paypal.com into your seller account. Then configure each public certificate for your staging and production. 
+
+sample config for staging
+config.after_initialize do
+  # Real paypal account. my-pubcert-staging.pem is for staging.example.com
+  ActiveMerchant::Billing::Base.mode = :production
+  ActiveMerchant::Billing::Base.gateway_mode = :production
+  ActiveMerchant::Billing::Base.integration_mode = :production
+  ActiveMerchant::Billing::PaypalGateway.pem_file =File.read(RAILS_ROOT + "/config/paypal/staging/paypal_cert.pem")
+  if defined?(Lolita::Paypal)
+    Lolita::Paypal.paypal_cert_pem = RAILS_ROOT + "/config/paypal/staging/paypal_cert.pem"
+    Lolita::Paypal.app_cert_pem = RAILS_ROOT + "/config/paypal/staging/my-pubcert-staging.pem"
+    Lolita::Paypal.app_key_pem = RAILS_ROOT + "/config/paypal/staging/my-prvkey.pem"
+    Lolita::Paypal.cert_id = "XXXXXXXXXXXX"
+    Lolita::Paypal.account = "seller@staging.example.com"
+  end
+end
+
+

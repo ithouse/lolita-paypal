@@ -1,0 +1,6 @@
+lv:
+  paypal:
+    unknown_error: nezināma kļūda
+    no_trans_id: Nav transakcijas ID
+    wrong_request: Nepareizs pieprasījums
+    purchase_failed: "Neizdevās izveidot maksājumu, lūdzu mēģiniet vēlreiz."

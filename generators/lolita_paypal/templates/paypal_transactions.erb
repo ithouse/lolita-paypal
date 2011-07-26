@@ -1,0 +1,53 @@
+class CreatePaypalTransactions < ActiveRecord::Migration
+  def self.up
+  create_table :paypal_transactions do |t|
+
+#      t.string        :payment_status
+#      t.decimal       :tax, :precision => 8, :scale => 2
+#      t.string        :receiver_email
+#      t.decimal       :payment_gross, :precision => 8, :scale => 2
+#      t.string        :ransaction_subject
+#      t.string        :receiver_id
+#      t.integer       :quantity
+#      t.string        :business
+#      t.string        :mc_currency
+#      t.decimal       :payment_fee, :precision => 8, :scale => 2
+#      t.string        :notify_version
+#      t.decimal       :shipping, :precision => 8, :scale => 2
+#      t.string        :item_name
+#      t.string        :txn_id
+#      t.string        :verify_sign
+#      t.string        :test_ipn
+#      t.string        :txn_type
+#      t.string        :last_name
+#      t.decimal       :mc_fee, :precision => 8, :scale => 2
+#      t.string        :charset
+#      t.string        :payer_id
+#      t.decimal       :mc_gross, :precision => 8, :scale => 2
+#      t.string        :payer_status
+#      t.string        :custom
+#      t.string        :ipn_track_id
+#      t.decimal       :handling_amount, :precision => 8, :scale => 2
+#      t.string        :residence_country
+#      t.string        :payer_email
+#      t.datetime      :payment_date
+#      t.string        :protection_eligibility
+#      t.string        :item_number
+#      t.string        :payment_type
+#      t.string        :first_name
+
+      t.string :transaction_id
+      t.string :status
+      t.references :paymentable, :polymorphic => true
+      t.string :ip, :length => 10
+
+      t.timestamps
+    end
+
+    add_index :paypal_transactions, [:paymentable_type,:paymentable_id]
+  end
+
+  def self.down
+    drop_table :paypal_transactions
+  end
+end
