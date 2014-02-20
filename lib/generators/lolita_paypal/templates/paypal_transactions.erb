@@ -1,0 +1,17 @@
+class CreatePaypalTransactions < ActiveRecord::Migration
+  def self.up
+    create_table :paypal_transactions do |t|
+      t.string   :transaction_id
+      t.string   :status
+      t.references :paymentable, polymorphic: true
+      t.string   :ip
+      t.timestamps
+    end
+    add_index :paypal_transactions, :status
+    add_index :paypal_transactions, [:paymentable_type, :paymentable_id]
+  end
+
+  def self.down
+    drop_table :paypal_transactions
+  end
+end
