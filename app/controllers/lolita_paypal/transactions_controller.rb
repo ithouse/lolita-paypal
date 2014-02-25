@@ -57,7 +57,7 @@ module LolitaPaypal
 
     # forces SSL in production mode if availab:le
     def is_ssl_required
-      ssl_required(:answer, :checkout) if defined?(ssl_required) && (Rails.env.production? || Rails.env.staging?)
+      ssl_required(:answer, :checkout) if defined?(ssl_required)
     end
 
 
