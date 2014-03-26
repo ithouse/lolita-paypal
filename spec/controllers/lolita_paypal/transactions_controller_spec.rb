@@ -41,7 +41,12 @@ describe LolitaPaypal::TransactionsController do
       expect(response.body).to eq("Wrong request")
     end
 
-    it "should successfuly handle transaction" do
+    it "should successfuly handle GET" do
+      get :answer, cm: "#{reservation.class}___#{reservation.id}"
+      expect(response).to redirect_to('/reservation/done')
+    end
+
+    it "should successfuly handle POST" do
       ActiveMerchant::Billing::Integrations::Paypal::Notification.any_instance.stub(:acknowledge).and_return(true)
       post :answer , {
             "mc_gross"=>"10.00",

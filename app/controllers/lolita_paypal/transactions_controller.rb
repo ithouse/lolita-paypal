@@ -15,14 +15,20 @@ module LolitaPaypal
     end
 
     # process ipn request
+    # POST is sent from paypal and will create transaction
+    # GET is a redirect from paypal and will redirect back to return_path
     def answer
-      if new_transaction?
+      if request.post?
         if ipn_notify.acknowledge
           LolitaPaypal::Transaction.create_transaction(ipn_notify, payment_from_ipn, request)
         end
         render nothing: true
       else
-        render text: I18n.t('lolita_paypal.wrong_request'), status: 400
+        if payment_from_ipn
+          redirect_to payment_from_ipn.paypal_return_path
+        else
+          render text: I18n.t('lolita_paypal.wrong_request'), status: 400
+        end
       end
     ensure
       LolitaPaypal.logger.info("[#{session_id}][#{payment_from_ipn && payment_from_ipn.id}][answer] #{params}")
@@ -35,8 +41,8 @@ module LolitaPaypal
     end
 
     def payment_from_ipn
-      if ipn_notify.params['custom']
-        klass, id = ipn_notify.params['custom'].split('___')
+      if subject = params['custom'] || params['cm']
+        klass, id = subject.split('___')
         payment = klass.constantize.find(id)
       end
     end
@@ -63,13 +69,6 @@ module LolitaPaypal
 
     def session_id
       request.session_options[:id]
-    end
-
-    def new_transaction?
-      payment_from_ipn.paypal_transactions.where(transaction_id: ipn_notify.transaction_id).count == 0
-    rescue
-      LolitaPaypal.logger.error "[#{session_id}][#{payment_from_ipn && payment_from_ipn.id}] Invalid transaction"
-      false
     end
   end
 end
