@@ -1,5 +1,6 @@
 *~
 *swp
+pkg/
 coverage/
 .local.vimrc
 spec/dummy/db/*.sqlite3
