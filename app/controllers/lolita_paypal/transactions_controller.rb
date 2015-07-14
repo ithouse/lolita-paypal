@@ -43,7 +43,7 @@ module LolitaPaypal
     def payment_from_ipn
       if subject = params['custom'] || params['cm']
         klass, id = subject.split('___')
-        payment = klass.constantize.find(id)
+        payment = klass.camelize.constantize.find(id)
       end
     end
 

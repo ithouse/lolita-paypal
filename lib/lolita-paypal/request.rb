@@ -30,7 +30,7 @@ module LolitaPaypal
         'cmd' => '_xclick',
         'business' =>  LolitaPaypal.account_name,
         'item_name' => payment.description,
-        'custom' =>"#{payment.class}___#{payment_id}",
+        'custom' =>"#{payment.class.to_s.underscore}___#{payment_id}",
         'amount' => amount(payment.price),
         'currency_code' => payment.currency,
         'no_note' => '1',
